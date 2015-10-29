@@ -1,0 +1,4 @@
+ZYXWVUTSRQPONMLKJIHGFEDCBA
+Receiver: 21304 is terminating.
+Sender: 19802 is terminating.
+Parent process: 14919 is terminating.
