@@ -26,15 +26,20 @@ int main(){
   //if receiver fork was succesful, set status flag
   if(receiver == 0){
     isReceiver = 1;
+  }else if(receiver == -1){
+    perror("fork");
+    exit(1);
   }
 
   //making the parent fork to sender now
   if(receiver != 0){
     sender = fork();
-
     //if the sender fork is sucessful, set status flag
     if(sender == 0){
       isSender = 1;
+    }else if(sender == -1){
+      perror("fork");
+      exit(1);
     }
   }
 
