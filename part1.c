@@ -2,86 +2,95 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//array to be converted to pipe
+int fd [2];
 
-pid_t sender,receiver;
-int i;
-char c = 90;
-int fildes[2];
-int isSender,isReceiver;
-size_t readVal;
+
+//pid's for receiver and sender
+pid_t receiver, sender;
+
+//status flags for if succesful receiver/sender forks
+int isSender, isReceiver,i;
+
+//a buffer reader
 char reader;
 
 int main(){
-  printf("Receiever before fork: %d\n",receiver);
-  printf("Sender before fork: %d\n",sender);
 
+  //this converts the array to a pipe
+  pipe(fd);
 
-
-  //create pipe
-  pipe(fildes);
-
-//Forks out the receiver and the sender
-
+  //forking the receiver
   receiver = fork();
-  if(receiver==0){
-    isReceiver=1;
+
+  //if receiver fork was succesful, set status flag
+  if(receiver == 0){
+    isReceiver = 1;
   }
+
+  //making the parent fork to sender now
   if(receiver != 0){
     sender = fork();
-    if(sender==0){
+
+    //if the sender fork is sucessful, set status flag
+    if(sender == 0){
       isSender = 1;
     }
   }
 
-if(isSender == 0 && isReceiver == 0){
-  close(fildes[1]);
-  close(fildes[0]);
-  sleep(30);
-  printf("FUCK YOU BITCHES: %d", getpid());
-}
+  //If the isSender and isReceiver flags are both 0 then this is the parent
+  if(isSender == 0 && isReceiver == 0){
+    //close both pipes
+    close(fd[0]);
+    close(fd[1]);
+    sleep(30);
+    printf("Parent process: %d is terminating.\n", getpid());
+  }
 
-  if(isReceiver==1){
 
-    //close write
-    close(fildes[1]);
+  //Receiver process
+  if(isReceiver == 1){
 
-    //read from pipe
+    //close write end of the pipe
+    close(fd[1]);
+
+    //read from the pipe
     while(reader != 65){
-      read(fildes[0],&reader,1);
+      read(fd[0],&reader,1);
       write(STDOUT_FILENO,&reader,1);
     }
 
-    //close read
-    close(fildes[0]);
+    //close read end of the pipe
+    close(fd[0]);
 
-    //print termination
-    printf("\nFUCK YOUUUUUUU RECEIVER GOING OUT: %d", getpid());
+    //print termination method
+    printf("\nReceiver: %d is terminating.\n",getpid());
 
     //terminate
     exit(0);
 
-  }else if (isSender==1){
+  } else if(isSender == 1){
 
-    //close read
-    close(fildes[0]);
+    //close read end of the pipe
+    close(fd[0]);
 
-    //write to pipe
+
+    //write to the pipe
     for(i=90;i>64;--i){
-      write(fildes[1],&i,1);
+      write(fd[1],&i,1);
+
       sleep(1);
     }
 
-    //close write
-    close(fildes[1]);
+    //close write end of the pipe
+    close(fd[1]);
 
-    //print termination
-    printf("\nFUCK YOU SENDER: %d", getpid());
-    fflush(stdout);
+    //print termination message
+    printf("Sender: %d is terminating.\n",getpid());
 
     //terminate
     exit(0);
-
   }
 
-  return 0;
+return 0;
 }
