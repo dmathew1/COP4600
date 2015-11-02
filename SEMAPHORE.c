@@ -18,11 +18,18 @@ void destroySemaphore( semaphore_t* sem ){
 }
 
 //Calls down on the semaphore
+//purpose is to take a lock
 void down( semaphore_t* sem ){
-
+  //mutual exclusion lock
+  //check if there are no more "locks" available
+  //if there are no more locks
+  //put calling thread in queue
+  //else decrement counter
+  //mutual exclusion unlock
 }
 
 //Calls up on the semaphore
+//purpose is to release the lock
 void up( semaphore_t* sem ){
 
 }
