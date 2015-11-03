@@ -1,0 +1,15 @@
+09/06/06 06:54:06 Xvnc version 3.3.tight1.2.7
+09/06/06 06:54:06 Copyright (C) 1999 AT&T Laboratories Cambridge.
+09/06/06 06:54:06 Copyright (C) 2000-2002 Constantin Kaplinsky.
+09/06/06 06:54:06 All Rights Reserved.
+09/06/06 06:54:06 See http://www.uk.research.att.com/vnc for information on VNC
+09/06/06 06:54:06 See http://www.tightvnc.com for TightVNC-specific information
+09/06/06 06:54:06 Desktop name 'Puffy' (puffy.cop4600.bsd:0)
+09/06/06 06:54:06 Protocol version supported 3.3
+09/06/06 06:54:06 Listening for VNC connections on TCP port 5900
+09/06/06 06:54:06 Listening for HTTP connections on TCP port 5800
+09/06/06 06:54:06   URL http://puffy.cop4600.bsd:5800
+xrdb: No such file or directory
+xrdb: can't open file '/root/.Xresources'
+X connection to :0.0 broken (explicit kill or server shutdown).
+xterm:  fatal IO error 32 (Broken pipe) or KillClient on X server ":0.0"

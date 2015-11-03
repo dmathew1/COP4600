@@ -1,0 +1,29 @@
+02/11/15 05:57:11 Xvnc version 3.3.tight1.2.7
+02/11/15 05:57:11 Copyright (C) 1999 AT&T Laboratories Cambridge.
+02/11/15 05:57:11 Copyright (C) 2000-2002 Constantin Kaplinsky.
+02/11/15 05:57:11 All Rights Reserved.
+02/11/15 05:57:11 See http://www.uk.research.att.com/vnc for information on VNC
+02/11/15 05:57:11 See http://www.tightvnc.com for TightVNC-specific information
+02/11/15 05:57:11 Desktop name 'Puffy' (puffy.cop4600.bsd:1)
+02/11/15 05:57:11 Protocol version supported 3.3
+02/11/15 05:57:11 Listening for VNC connections on TCP port 5901
+02/11/15 05:57:11 Listening for HTTP connections on TCP port 5801
+02/11/15 05:57:11   URL http://puffy.cop4600.bsd:5801
+xrdb: No such file or directory
+xrdb: can't open file '/root/.Xresources'
+
+02/11/15 05:57:14 Got connection from client 192.168.186.1
+02/11/15 05:57:14 Protocol version 3.3
+02/11/15 05:57:14 Pixel format for client 192.168.186.1:
+02/11/15 05:57:14   8 bpp, depth 8
+02/11/15 05:57:14   true colour: max r 7 g 7 b 3, shift r 0 g 3 b 6
+02/11/15 05:57:14   no translation needed
+02/11/15 05:57:14 rfbProcessClientNormalMessage: ignoring unknown encoding 16
+02/11/15 05:57:14 Using tight encoding for client 192.168.186.1
+02/11/15 05:57:14 Using image quality level 6 for client 192.168.186.1
+02/11/15 05:57:14 rfbProcessClientNormalMessage: ignoring unknown encoding 8
+02/11/15 05:57:14 rfbProcessClientNormalMessage: ignoring unknown encoding -307
+02/11/15 05:57:14 Enabling LastRect protocol extension for client 192.168.186.1
+02/11/15 05:57:14 rfbProcessClientNormalMessage: ignoring unknown encoding -223
+02/11/15 05:57:14 Enabling cursor position updates for client 192.168.186.1
+02/11/15 05:57:14 Enabling full-color cursor updates for client 192.168.186.1
