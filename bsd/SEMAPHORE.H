@@ -5,13 +5,16 @@ typedef struct{
   int count; //number of "locks" the semaphore can hand out
   pthread_mutex_t mutex; //the mutex lock
   pthread_cond_t condition; //the conditional variable
-  SIMPLEQ_HEAD(queuehead, entry) head; //lists this as the head of the simpleQ
+  //SIMPLEQ_HEAD(queuehead, entry) head; //lists this as the head of the simpleQ
+  int wakeupCount;
+  int totalCount;
 }semaphore_t;
 
+
 //Entries for the SIMPLEQ construct
-typedef struct entry{
+/*typedef struct entry{
   SIMPLEQ_ENTRY(entry) next;
-}*np;
+}*np;*/
 
 
 //Create Semaphore function
@@ -25,3 +28,5 @@ void down( semaphore_t* sem );
 
 //Calling up on the semaphore function
 void up( semaphore_t* sem );
+
+void cleanup_handler(void *sem1);

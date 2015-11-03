@@ -27,3 +27,13 @@ xrdb: can't open file '/root/.Xresources'
 02/11/15 05:57:14 rfbProcessClientNormalMessage: ignoring unknown encoding -223
 02/11/15 05:57:14 Enabling cursor position updates for client 192.168.186.1
 02/11/15 05:57:14 Enabling full-color cursor updates for client 192.168.186.1
+02/11/15 07:53:11 Client 192.168.186.1 gone
+02/11/15 07:53:11 Statistics:
+02/11/15 07:53:11   key events received 556, pointer events 2351
+02/11/15 07:53:11   framebuffer updates 495, rectangles 2716, bytes 100174
+02/11/15 07:53:11     LastRect markers 253, bytes 3036
+02/11/15 07:53:11     cursor shape updates 34, bytes 8184
+02/11/15 07:53:11     cursor position updates 1, bytes 12
+02/11/15 07:53:11     copyRect rectangles 234, bytes 3744
+02/11/15 07:53:11     tight rectangles 2194, bytes 85198
+02/11/15 07:53:11   raw bytes equivalent 9480515, compression ratio 111.276262
