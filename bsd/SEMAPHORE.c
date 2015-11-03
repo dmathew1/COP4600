@@ -52,9 +52,6 @@ void down( semaphore_t* sem ){
 
   --sem->count;
 
-
-
-
   //mutual exclusion unlock
   pthread_mutex_unlock(&sem->mutex);
 }

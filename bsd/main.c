@@ -5,7 +5,7 @@
 #include "SEMAPHORE.c"
 
 #define BARBERS	2
-#define CUSTOMERS 10
+#define CUSTOMERS 2
 #define CHAIRS 5
 
 semaphore_t *barberSem;
@@ -16,19 +16,22 @@ int waiting = 0;
 
 void * receive_cut(void *customer_id){
   usleep(10000);
-  printf("Person %d left with stylish haircut\n",customer_id);
+  printf("Customer %d left with stylish haircut\n",customer_id+1);
   fflush(stdout);
 }
 
 void * cut_hair(void *barber_id){
   usleep(10000);
-  printf("Barber %d is cutting hair.\n",barber_id);
+  printf("Barber %d is cutting hair.\n",barber_id+1);
   fflush(stdout);
 }
 
 void * barber(void *barber_id)
 {
+  printf("Barber %d created\n",barber_id+1);
   while(1){
+    printf("Barber %d is sleeping\n", barber_id+1 );
+    fflush(stdout);
     down(customerSem);
     down(mutex);
     --waiting;
@@ -39,6 +42,7 @@ void * barber(void *barber_id)
 }
 
 void * customer(void *customer_id){
+  printf("Customer %d walks into the barber shop\n",customer_id+1);
   down(mutex);
   if(waiting < CHAIRS){
     ++waiting;
@@ -49,6 +53,8 @@ void * customer(void *customer_id){
   }else{
     up(mutex);
   }
+  printf("Customer %d is leaving.\n", customer_id+1 );
+  fflush(stdout);
   pthread_exit(NULL);
 }
 
@@ -65,6 +71,8 @@ int main( void )
   mutex = createSemaphore(1);
   setbuf(stdout,NULL);
 
+
+  // *************** This creates the Barber threads ****************** //
   for ( i = 0; i < BARBERS; ++i )
   {
     // make the threads
@@ -76,7 +84,7 @@ int main( void )
     }
   }
 
-
+  // *************** This creates the Customer threads *************** //
   for ( i = 0; i < CUSTOMERS; ++i )
   {
     // make the threads
@@ -88,7 +96,7 @@ int main( void )
     }
   }
 
-  // wait for the threads to terminate
+  // **************** This destroys the Customer Threads *************** //
   for ( i = 0; i < CUSTOMERS; ++i )
   {
     if ( pthread_join( customerThreads[i], NULL) )
@@ -98,13 +106,12 @@ int main( void )
     }
     else
     {
-      printf("customer %d is leaving.\n", i+1 );
-      fflush(stdout);
+
     }
   }
 
+  // ***************** This destroys the Barber threads *************** //
   sleep(1);
-  // wait for the threads to terminate
   for ( i = 0; i < BARBERS; ++i )
   {
     if ( pthread_cancel( barberThreads[i] ) )
@@ -114,8 +121,7 @@ int main( void )
     }
     else
     {
-      printf("Barber %d is leaving\n", i+1 );
-      fflush(stdout);
+
     }
   }
 
