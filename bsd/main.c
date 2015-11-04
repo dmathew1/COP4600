@@ -5,7 +5,7 @@
 #include "SEMAPHORE.c"
 
 #define BARBERS	2
-#define CUSTOMERS 1
+#define CUSTOMERS 6
 #define CHAIRS 5
 
 semaphore_t *barberSem;
@@ -57,8 +57,9 @@ void * customer(void *customer_id){
   }else{
     up(mutex);
   }
-  printf("Customer %d is leaving.\n", customer_id+1 );
-  fflush(stdout);
+  if(waiting == CHAIRS){
+    printf("Customer %d is leaving because no chairs.\n", customer_id+1 );
+  }
   pthread_exit(NULL);
 }
 
