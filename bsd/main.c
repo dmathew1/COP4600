@@ -5,12 +5,13 @@
 #include "SEMAPHORE.c"
 
 #define BARBERS	2
-#define CUSTOMERS 2
+#define CUSTOMERS 5
 #define CHAIRS 5
 
 semaphore_t *barberSem;
 semaphore_t *customerSem;
 semaphore_t *mutex;
+//SIMPLEQ_INIT(struct conditionalQueue);
 int waiting = 0;
 
 
@@ -125,10 +126,7 @@ int main( void )
     }
   }
 
-
-
-
-
-
+  destroySemaphore(barberSem);
+  destroySemaphore(customerSem);
   pthread_exit(NULL);
 }
