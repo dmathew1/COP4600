@@ -5,13 +5,12 @@
 #include "SEMAPHORE.c"
 
 #define BARBERS	2
-#define CUSTOMERS 5
+#define CUSTOMERS 1
 #define CHAIRS 5
 
 semaphore_t *barberSem;
 semaphore_t *customerSem;
 semaphore_t *mutex;
-//SIMPLEQ_INIT(struct conditionalQueue);
 int waiting = 0;
 
 
@@ -32,11 +31,12 @@ void * barber(void *barber_id)
   printf("Barber %d created\n",barber_id+1);
   while(1){
     printf("Barber %d is sleeping\n", barber_id+1 );
-    fflush(stdout);
     down(customerSem);
+    printf("Barber %d wakes up\n",barber_id+1);
     down(mutex);
     --waiting;
     up(barberSem);
+    printf("Barber %d beckons customer to chair\n",barber_id+1);
     up(mutex);
     cut_hair(barber_id);
   }
@@ -47,9 +47,12 @@ void * customer(void *customer_id){
   down(mutex);
   if(waiting < CHAIRS){
     ++waiting;
+    printf("Customer %d wakes up barber\n",customer_id+1);
     up(customerSem);
     up(mutex);
+    printf("Customer %d waits in chair %d\n",customer_id+1,customer_id+1);
     down(barberSem);
+    printf("Customer %d sits in barber chair\n",customer_id+1);
     receive_cut(customer_id);
   }else{
     up(mutex);
@@ -105,10 +108,6 @@ int main( void )
       printf("ERROR: joining thread %d\n", i );
       fflush(stdout);
     }
-    else
-    {
-
-    }
   }
 
   // ***************** This destroys the Barber threads *************** //
@@ -119,10 +118,6 @@ int main( void )
     {
       printf("ERROR: Barber joining thread %d\n", i );
       fflush(stdout);
-    }
-    else
-    {
-
     }
   }
 

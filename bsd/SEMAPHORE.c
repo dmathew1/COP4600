@@ -35,6 +35,7 @@ void cleanup_handler(void *sem1){
 //Destroys the semaphore
 void destroySemaphore( semaphore_t* sem ){
   free(sem);
+
 }
 
 //Calls down on the semaphore whose purpose is to take a lock
