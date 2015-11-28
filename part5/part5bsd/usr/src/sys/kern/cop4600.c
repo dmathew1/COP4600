@@ -271,17 +271,16 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
 int
 down_semaphore( struct proc *p, void *v, register_t *retval )
 {
-  char kstr[MAX_NAME_LENGTH+1];
-  int size = 0;
+  char kstr1[MAX_NAME_LENGTH+1];
+  int size1 = 0;
   int err = 0;
-
+  //char *test;
   //pass arguments down
   struct down_semaphore_args *uap = v;
-  err = copyinstr( SCARG(uap, name), &kstr, MAX_STR_LENGTH+1, &size );
-
+  err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
   //if the name doesnt exist in the createdSemaphore global
-  for ( np = SIMPLEQ_FIRST(&createdSemaphore); np != NULL; np = SIMPLEQ_NEXT(np, next) )
-      if(np->name == kstr){
+  for ( np = SIMPLEQ_FIRST(&createdSemaphore); np->name != NULL ; np = SIMPLEQ_NEXT(np, next) )
+      if(np->name==kstr1){
         uprintf( "Semaphore %s has: %d\n", np->name, np->count );
       }
 
