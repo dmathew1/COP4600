@@ -12,6 +12,7 @@
 #include <sys/filedesc.h>
 #include <sys/pool.h>
 #include <sys/semaphore.h>
+#include <lib/libkern/libkern.h>
 
 #include <sys/mount.h>
 #include <sys/syscallargs.h>
@@ -207,6 +208,7 @@ int sys_cipher(struct proc *p, void *v, register_t *retval){
 **========================================================================*/
 
 
+
 int
 allocate_semaphore( struct proc *p, void *v, register_t *retval )
 {
@@ -229,19 +231,9 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
   sem->ID = p->p_pid;
 
   //allocates memory and assigns the attributes
-  // np = (struct entry *) malloc( sizeof( struct entry ),M_SUBPROC,M_NOWAIT );
-  // np->semaphore = sem;
-
-  if(p->psem_container == NULL){
-    p->psem_container = (sem_container*)malloc(sizeof(sem_container),M_SUBPROC,M_NOWAIT);
-    p->psem_container->count = 0;
-    p->psem_container->sem_array[count] = sem;
-  }else{
-    p->psem_container->sem_array[count] = sem;
-    ++p->psem_container->count;
-  }
-  uprintf("Allocate Proces ID: %lu\n",p->p_pid);
-  uprintf("Container: %d \n",p->psem_container);
+  np = (struct entry *) malloc( (unsigned long)sizeof( struct entry ),M_SUBPROC,M_NOWAIT );
+  np->semaphore = *sem;
+  LIST_INSERT_HEAD(&p->createdSemaphore, np, next);
   *retval = p->p_pid;
   return (0);
 }
@@ -252,22 +244,20 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
   char kstr1[MAX_NAME_LENGTH+1];
   int size1 = 0;
   int err = 0;
-  //int i;
+
 
   //pass arguments down
   struct down_semaphore_args *uap = v;
   err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
-  uprintf("Down Proces ID: %lu\n",p->p_pid);
-  uprintf("Container: %p \n",p->psem_container);
-  uprintf("Container->Array: %p \n",p->psem_container->sem_array);
-  uprintf("Container->Array->0 Element: %p \n",p->psem_container->sem_array[0]);
-  uprintf("Container->Array->0 Element->name: %s \n",p->psem_container->sem_array[0]->name);
-  uprintf("Container->Array->0 Element->ID: %d \n",p->psem_container->sem_array[0]->ID);
-  uprintf("Container->Array->0 Element->name: %d \n",p->psem_container->sem_array[0]->count);
-  //Scan through current process semaphore structure
-  //if not in current process, reassign pid to parents pid
-  //search until pid == NULL
 
+  for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
+    // if(strcmp(np->semaphore.name, kstr1)==0){
+       uprintf("Semaphore: %s with %d locks remaining FOUND \n",np->semaphore.name,np->semaphore.count);
+    //   break;
+    // }else{
+    //   uprintf("NOT FOUND NIGGA\n");
+    // }
+  }
 
 
 

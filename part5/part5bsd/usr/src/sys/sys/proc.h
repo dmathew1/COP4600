@@ -130,7 +130,7 @@ extern int nemuls;			/* Number of emuls */
 
  //Global container for semaphores capped at 64
  typedef struct {
-   semaphore_t sem_array[64];
+   semaphore_t *sem_array[64];
    int count;
  }sem_container;
 
@@ -162,6 +162,7 @@ struct	proc {
 	struct	proc *p_pptr;	 	/* Pointer to parent process. */
 	LIST_ENTRY(proc) p_sibling;	/* List of sibling processes. */
 	LIST_HEAD(, proc) p_children;	/* Pointer to list of children. */
+  struct	proc_extend *process; /* pointer to the process extention struct */
 
 /* The following fields are all zeroed upon creation in fork. */
 #define	p_startzero	p_oppid
@@ -203,7 +204,7 @@ struct	proc {
 	struct	klist p_klist;		/* knotes attached to this process */
 					/* pad to 256, avoid shifting eproc. */
 
-	sem_container *psem_container; /*pointer to the container */
+	sem_container *psem_container;
 
 /* End area that is zeroed on creation. */
 #define	p_endzero	p_startcopy
