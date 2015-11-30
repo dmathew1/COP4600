@@ -120,6 +120,20 @@ extern int nemuls;			/* Number of emuls */
  * which might be addressable only on a processor on which the process
  * is running.
  */
+
+
+ typedef struct{
+   int count;
+   char *name;
+   pid_t ID;
+ }semaphore_t;
+
+ //Global container for semaphores capped at 64
+ typedef struct {
+   semaphore_t sem_array[64];
+   int count;
+ }sem_container;
+
 struct	proc {
 	struct	proc *p_forw;		/* Doubly-linked run/sleep queue. */
 	struct	proc *p_back;
@@ -189,6 +203,7 @@ struct	proc {
 	struct	klist p_klist;		/* knotes attached to this process */
 					/* pad to 256, avoid shifting eproc. */
 
+	sem_container *psem_container; /*pointer to the container */
 
 /* End area that is zeroed on creation. */
 #define	p_endzero	p_startcopy
@@ -217,13 +232,8 @@ struct	proc {
 	u_short	p_xstat;	/* Exit status for wait; also stop signal. */
 	u_short	p_acflag;	/* Accounting flags. */
 	struct	rusage *p_ru;	/* Exit information. XXX */
-
-	semaphore_t *sem
 };
 
-typedef struct {
-  int count; //number of "locks" the semaphore can hand out
-}semaphore_t;
 
 #define	p_session	p_pgrp->pg_session
 #define	p_pgid		p_pgrp->pg_id

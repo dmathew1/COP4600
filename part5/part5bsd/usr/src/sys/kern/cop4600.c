@@ -11,7 +11,7 @@
 #include <sys/malloc.h>
 #include <sys/filedesc.h>
 #include <sys/pool.h>
-
+#include <sys/semaphore.h>
 
 #include <sys/mount.h>
 #include <sys/syscallargs.h>
@@ -206,62 +206,38 @@ int sys_cipher(struct proc *p, void *v, register_t *retval){
 **  <Denzel> Part 5 Sys_calls                      **
 **========================================================================*/
 
-#define MAX_NAME_LENGTH  32
-
-//Semaphore struct
-typedef struct {
-  int count;
-  char *name;
-}semaphore_t;
-
-//Entries for the SIMPLEQ construct
-struct entry{
-  //semaphore_t semaphore;
-  int count;
-  char *name;
-  SIMPLEQ_ENTRY(entry) next;
-}*np;
-
-//Global datastructure containing all the semaphores of the process
-SIMPLEQ_HEAD(queuehead, entry) createdSemaphore = SIMPLEQ_HEAD_INITIALIZER(createdSemaphore);
 
 int
 allocate_semaphore( struct proc *p, void *v, register_t *retval )
 {
-  //creates a pointer to a semaphore_t
+
+  //each node in the simpleQ represents the semaphore architecture
+  //struct entry *np;
   semaphore_t *sem;
-  struct entry *np;
+
   char kstr[MAX_NAME_LENGTH+1];
   int size = 0;
   int err = 0;
 
-
   //gets the arguments for allocate_semaphore as a struct
   struct allocate_semaphore_args *uap = v;
-  sem = (semaphore_t*)malloc(sizeof(semaphore_t), M_SUBPROC, M_NOWAIT);
-
-  /* copy the user-space arg string to kernal-space */
   err = copyinstr( SCARG(uap, name), &kstr, MAX_STR_LENGTH+1, &size );
-  uprintf("The name of the semaphore in the global is: %s\n",kstr);
 
-  //if the name is longer than 32 characters, return error
-  if (err == EFAULT)
-    return( err );
-  else if (err == ENAMETOOLONG)
-    kstr[MAX_NAME_LENGTH+1] = '\0';
-
+  sem = (semaphore_t *) malloc( sizeof(  semaphore_t ),M_SUBPROC,M_NOWAIT );
   sem->count=SCARG(uap,initial_count);
   sem->name = kstr;
+  sem->ID = p->p_pid;
 
-  np = (struct entry *) malloc( sizeof( struct entry ),M_SUBPROC,M_NOWAIT );
-  np->count = sem->count;
-  np->name = kstr;
+  //allocates memory and assigns the attributes
+  // np = (struct entry *) malloc( sizeof( struct entry ),M_SUBPROC,M_NOWAIT );
+  // np->semaphore = sem;
 
-  if(SIMPLEQ_EMPTY(&createdSemaphore)){
-    SIMPLEQ_INIT(&createdSemaphore);
-    SIMPLEQ_INSERT_HEAD( &createdSemaphore,np,next);
+  if(p->psem_container == NULL){
+    p->psem_container = (sem_container*)malloc(sizeof(sem_container),M_SUBPROC,M_NOWAIT);
+    p->psem_container->count = 0;
   }else{
-    SIMPLEQ_INSERT_TAIL( &createdSemaphore,np,next);
+    p->sem_container[count] = sem;
+    ++p->sem_container->count;
   }
 
   *retval = p->p_pid;
@@ -274,17 +250,28 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
   char kstr1[MAX_NAME_LENGTH+1];
   int size1 = 0;
   int err = 0;
-  //char *test;
+
   //pass arguments down
   struct down_semaphore_args *uap = v;
   err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
-  //if the name doesnt exist in the createdSemaphore global
-  for ( np = SIMPLEQ_FIRST(&createdSemaphore); np->name != NULL ; np = SIMPLEQ_NEXT(np, next) )
-      if(np->name==kstr1){
-        uprintf( "Semaphore %s has: %d\n", np->name, np->count );
-      }
+  // if the name doesnt exist in the createdSemaphore global
 
+  // while(p->p_pptr->p_pid != (pid_t)1){
+  //   uprintf("There are no children processes\n");
+  //
+  // }
 
+  //Scan through current process semaphore structure
+  //if not in current process, reassign pid to parents pid
+  //search until pid == NULL
+
+  /*SIMPLEQ_FOREACH( np, &createdSemaphore, next ){
+    //if(kstr1==np->name){
+      uprintf( "Process: %lu. Semaphore %s has: %d locks remaining. \n", np->semaphore->ID,np->semaphore->name,np->semaphore->count);
+      //break;
+    //}
+  }
+*/
   *retval = p->p_pid;
   return (0);
 }
@@ -292,17 +279,35 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
 int
 up_semaphore( struct proc *p, void *v, register_t *retval )
 {
-
-  uprintf( "\nI am from the up semaphore section\n");
-  *retval = p->p_pid;
-
+//
+//   uprintf( "\nI am from the up semaphore section\n");
+//   *retval = p->p_pid;
+//
+//   return (0);
+// }
+// int
+// free_semaphore( struct proc *p, void *v, register_t *retval )
+// {
+//   uprintf( "\nI am from the free semaphore section\n");
+//   *retval = p->p_pid;
+//
   return (0);
 }
+
 int
 free_semaphore( struct proc *p, void *v, register_t *retval )
 {
-  uprintf( "\nI am from the free semaphore section\n");
-  *retval = p->p_pid;
-
+//
+//   uprintf( "\nI am from the up semaphore section\n");
+//   *retval = p->p_pid;
+//
+//   return (0);
+// }
+// int
+// free_semaphore( struct proc *p, void *v, register_t *retval )
+// {
+//   uprintf( "\nI am from the free semaphore section\n");
+//   *retval = p->p_pid;
+//
   return (0);
 }
