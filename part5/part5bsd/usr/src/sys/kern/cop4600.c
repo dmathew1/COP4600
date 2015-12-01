@@ -280,12 +280,13 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
     for ( np = LIST_FIRST(&head->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
       if(strcmp(np->semaphore.name, kstr1)==0){
         //If the count is negative, add to the queue
-          if(np->semaphore.count < 0){
+          if(np->semaphore.count <= 0){
             lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
             uprintf("Process ID: %lu Semaphore %s should be sleeping\n",np->semaphore.ID,np->semaphore.name);
+            --np->semaphore.count;
             SIMPLEQ_INSERT_TAIL(&np->semaphore.conditionalQueue,npCondition, next);
-            sleep(npCondition,PVM);
             found = 1;
+            sleep(npCondition,PVM);
             lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
             return(0);
           }else{
@@ -330,7 +331,7 @@ up_semaphore( struct proc *p, void *v, register_t *retval )
     for ( np = LIST_FIRST(&head->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
       if(strcmp(np->semaphore.name, kstr1)==0){
         //If the count is positive
-          if(np->semaphore.count >= 0 || SIMPLEQ_EMPTY(&np->semaphor.conditionalQueue)){
+          if(np->semaphore.count >= 0 || SIMPLEQ_EMPTY(&np->semaphore.conditionalQueue)){
             lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
             uprintf("Process ID: %lu Semaphore %s has enough counts\n",np->semaphore.ID,np->semaphore.name);
             ++np->semaphore.count;
@@ -363,18 +364,26 @@ free_semaphore( struct proc *p, void *v, register_t *retval )
   char kstr1[MAX_NAME_LENGTH+1];
   int size1 = 0;
   int err = 0;
+  int found = 0;
   struct proc *head = p;
 
   //pass arguments down
-  struct up_semaphore_args *uap = v;
+  struct free_semaphore_args *uap = v;
   err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
 
   while(head != NULL){
     for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
       if(strcmp(np->semaphore.name, kstr1)==0){
+        found = 1;
         free(&np->semaphore,M_FREE);
       }
     }
+    head = head->p_pptr;
+  }
+
+  if(found == 0){
+    *retval = ENOENT;
+    return(0);
   }
 
   *retval = p->p_pid;
