@@ -14,6 +14,7 @@
 #include <sys/semaphore.h>
 #include <lib/libkern/libkern.h>
 #include <sys/types.h>
+#include </usr/include/errno.h>
 
 #include <sys/mount.h>
 #include <sys/syscallargs.h>
@@ -207,25 +208,28 @@ int sys_cipher(struct proc *p, void *v, register_t *retval){
 /*========================================================================**
 **  <Denzel> Part 5 Sys_calls                      **
 **========================================================================*/
-
-
-
 int
 allocate_semaphore( struct proc *p, void *v, register_t *retval )
 {
 
-  //Check to see if the list already has the semaphore name
-
   semaphore_t *sem;
-
   char kstr[MAX_NAME_LENGTH+1];
   int size = 0;
   int err = 0;
+  int len;
 
   //gets the arguments for allocate_semaphore as a struct
   struct allocate_semaphore_args *uap = v;
   err = copyinstr( SCARG(uap, name), &kstr, MAX_NAME_LENGTH+1, &size );
 
+  //Check to see if the name of the semaphore is longer than 32
+  len = strlen(kstr);
+  if(len>32){
+    *retval = ENAMETOOLONG;
+    return(0);
+  }
+
+  //Traverse through the existing container for an existing semaphore
   for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
     if(strcmp(np->semaphore.name, kstr)==0){
       uprintf("This semaphore already exists.\n");
@@ -240,8 +244,6 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
   sem->name = (char*)malloc((unsigned long)32,M_SUBPROC,M_NOWAIT);
   strncpy(sem->name,kstr,MAX_NAME_LENGTH);
   sem->ID = p->p_pid;
-
-
 
   //Allocate Mutex Lock
   sem->mutex = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
@@ -260,18 +262,22 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
 int
 down_semaphore( struct proc *p, void *v, register_t *retval )
 {
+  //Initial arguments
   char kstr1[MAX_NAME_LENGTH+1];
   int size1 = 0;
   int err = 0;
+  int found = 0;
   struct proc *head = p;
 
-  //pass arguments down
+  //Grab arguments into a package
   struct down_semaphore_args *uap = v;
   err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
 
-  // Find the semaphore I want
+  // Traverse through the current semaphore container to see if the semaphore exists;
+  // If it doesnt exist, traverse upwards to see if the semaphore exists
+  // If it doesn't exist at all in the branch, return ERROR
   while(head != NULL){
-    for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
+    for ( np = LIST_FIRST(&head->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
       if(strcmp(np->semaphore.name, kstr1)==0){
         //If the count is negative, add to the queue
           if(np->semaphore.count < 0){
@@ -279,6 +285,7 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
             uprintf("Process ID: %lu Semaphore %s should be sleeping\n",np->semaphore.ID,np->semaphore.name);
             SIMPLEQ_INSERT_TAIL(&np->semaphore.conditionalQueue,npCondition, next);
             sleep(npCondition,PVM);
+            found = 1;
             lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
             return(0);
           }else{
@@ -286,6 +293,7 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
             lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
             uprintf("Process ID: %lu Semaphore %s is decrementing\n",np->semaphore.ID,np->semaphore.name);
             --np->semaphore.count;
+            found = 1;
             lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
             return(0);
             }
@@ -293,6 +301,11 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
         }
         head = head->p_pptr;
       }
+
+  if(found == 0){
+    *retval = ENOENT;
+    return(0);
+  }
 
   *retval = p->p_pid;
   return (0);
@@ -310,12 +323,14 @@ up_semaphore( struct proc *p, void *v, register_t *retval )
   struct up_semaphore_args *uap = v;
   err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
 
-  // Find the semaphore I want
+  // Traverse through the current semaphore container to see if the semaphore exists;
+  // If it doesnt exist, traverse upwards to see if the semaphore exists
+  // If it doesn't exist at all in the branch, return ERROR
   while(head != NULL){
-    for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
+    for ( np = LIST_FIRST(&head->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
       if(strcmp(np->semaphore.name, kstr1)==0){
         //If the count is positive
-          if(np->semaphore.count >= 0){
+          if(np->semaphore.count >= 0 || SIMPLEQ_EMPTY(&np->semaphor.conditionalQueue)){
             lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
             uprintf("Process ID: %lu Semaphore %s has enough counts\n",np->semaphore.ID,np->semaphore.name);
             ++np->semaphore.count;
@@ -328,9 +343,9 @@ up_semaphore( struct proc *p, void *v, register_t *retval )
             ++np->semaphore.count;
             uprintf("Process ID: %lu Semaphore %s is releasing conditional\n",np->semaphore.ID,np->semaphore.name);
             SIMPLEQ_REMOVE_HEAD(&np->semaphore.conditionalQueue, npCondition, next);
-
+            if(np->semaphore.count >= 0){
               wakeup(npCondition);
-            
+            }
             lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
             return(0);
             }
@@ -345,17 +360,24 @@ up_semaphore( struct proc *p, void *v, register_t *retval )
 int
 free_semaphore( struct proc *p, void *v, register_t *retval )
 {
-//
-//   uprintf( "\nI am from the up semaphore section\n");
-//   *retval = p->p_pid;
-//
-//   return (0);
-// }
-// int
-// free_semaphore( struct proc *p, void *v, register_t *retval )
-// {
-//   uprintf( "\nI am from the free semaphore section\n");
-//   *retval = p->p_pid;
-//
+  char kstr1[MAX_NAME_LENGTH+1];
+  int size1 = 0;
+  int err = 0;
+  struct proc *head = p;
+
+  //pass arguments down
+  struct up_semaphore_args *uap = v;
+  err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
+
+  while(head != NULL){
+    for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
+      if(strcmp(np->semaphore.name, kstr1)==0){
+        free(&np->semaphore,M_FREE);
+      }
+    }
+  }
+
+  *retval = p->p_pid;
+
   return (0);
 }
