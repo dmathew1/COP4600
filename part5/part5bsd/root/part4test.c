@@ -8,8 +8,8 @@ int main(void){
   syscall(292,"semaphore3",3);
   syscall(292,"semaphore4",4);
   fork();
-  syscall(293,"semaphore3");
-  //call up on semaphores
+  syscall(294,"semaphore2");
+  syscall(294,"semaphore2");
   //syscall(294);
 
   //free up semaphores

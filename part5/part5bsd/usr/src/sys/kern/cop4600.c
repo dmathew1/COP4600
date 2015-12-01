@@ -247,14 +247,6 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
   sem->mutex = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
   lockinit(sem->mutex, 0, "Mutex is locked", p->p_priority, LK_NOWAIT);
 
-  //Allocate Down Lock
-  sem->down = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
-  lockinit(sem->down, 0, "Down is locked", p->p_priority, LK_NOWAIT);
-
-  //Allocate Up Lock
-  sem->up = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
-  lockinit(sem->up, 0, "Up is locked", p->p_priority, LK_NOWAIT);
-
   //allocates memory and assigns the semaphore to it
   np = (struct entry *) malloc( (unsigned long)sizeof( struct entry ),M_SUBPROC,M_NOWAIT );
   npCondition = (struct conditionalEntry*)malloc((unsigned long)sizeof(struct conditionalEntry),M_SUBPROC,M_NOWAIT);
@@ -281,22 +273,21 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
   while(head != NULL){
     for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
       if(strcmp(np->semaphore.name, kstr1)==0){
+        //If the count is negative, add to the queue
           if(np->semaphore.count < 0){
+            lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
             uprintf("Process ID: %lu Semaphore %s should be sleeping\n",np->semaphore.ID,np->semaphore.name);
-            //Sleep the process
-            SIMPLEQ_INSERT_HEAD(&np->semaphore.conditionalQueue,npCondition, next);
-            sleep(npCondition,p->p_priority);
+            SIMPLEQ_INSERT_TAIL(&np->semaphore.conditionalQueue,npCondition, next);
+            sleep(npCondition,PVM);
+            lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
             return(0);
           }else{
-            //Jerk off
-
-            //Lock
+            //The count is non-negative
             lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
             uprintf("Process ID: %lu Semaphore %s is decrementing\n",np->semaphore.ID,np->semaphore.name);
             --np->semaphore.count;
             lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
             return(0);
-
             }
           }
         }
@@ -310,18 +301,44 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
 int
 up_semaphore( struct proc *p, void *v, register_t *retval )
 {
-//
-//   uprintf( "\nI am from the up semaphore section\n");
-//   *retval = p->p_pid;
-//
-//   return (0);
-// }
-// int
-// free_semaphore( struct proc *p, void *v, register_t *retval )
-// {
-//   uprintf( "\nI am from the free semaphore section\n");
-//   *retval = p->p_pid;
-//
+  char kstr1[MAX_NAME_LENGTH+1];
+  int size1 = 0;
+  int err = 0;
+  struct proc *head = p;
+
+  //pass arguments down
+  struct up_semaphore_args *uap = v;
+  err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
+
+  // Find the semaphore I want
+  while(head != NULL){
+    for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
+      if(strcmp(np->semaphore.name, kstr1)==0){
+        //If the count is positive
+          if(np->semaphore.count >= 0){
+            lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
+            uprintf("Process ID: %lu Semaphore %s has enough counts\n",np->semaphore.ID,np->semaphore.name);
+            ++np->semaphore.count;
+            lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
+            return(0);
+          }else{
+            //The count is negative while calling up, so release the item in queue
+            //and increments count
+            lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
+            ++np->semaphore.count;
+            uprintf("Process ID: %lu Semaphore %s is releasing conditional\n",np->semaphore.ID,np->semaphore.name);
+            SIMPLEQ_REMOVE_HEAD(&np->semaphore.conditionalQueue, npCondition, next);
+
+              wakeup(npCondition);
+            
+            lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
+            return(0);
+            }
+          }
+        }
+        head = head->p_pptr;
+      }
+  *retval = p->p_pid;
   return (0);
 }
 

@@ -129,8 +129,6 @@ extern int nemuls;			/* Number of emuls */
    pid_t ID;
 	 struct simplelock *slock;
 	 struct lock *mutex;
-	 struct lock *down;
-	 struct lock *up;
 	SIMPLEQ_HEAD(queueheadConditional, conditionalEntry) conditionalQueue;
  }semaphore_t;
 
