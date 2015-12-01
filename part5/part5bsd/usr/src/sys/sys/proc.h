@@ -122,19 +122,19 @@ extern int nemuls;			/* Number of emuls */
  * is running.
  */
 
-//Semaphore
+//Semaphore Struct
  typedef struct{
    int count;
    char *name;
    pid_t ID;
+	 struct simplelock *slock;
 	 struct lock *mutex;
-	 struct simplelock *mutex1;
 	 struct lock *down;
 	 struct lock *up;
  }semaphore_t;
 
 
-
+//Struct for LIST entries
 struct entry{
    semaphore_t semaphore;
 	 LIST_ENTRY(entry) next;

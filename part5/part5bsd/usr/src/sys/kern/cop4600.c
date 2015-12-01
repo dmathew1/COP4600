@@ -239,15 +239,17 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
   strncpy(sem->name,kstr,MAX_NAME_LENGTH);
   sem->ID = p->p_pid;
 
-  //Allocate 
+  //Allocate Mutex Lock
   sem->mutex = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
-  lockinit(sem->mutex, 0, "Mutex is locked", 0, LK_NOWAIT);
+  lockinit(sem->mutex, 0, "Mutex is locked", p->p_priority, LK_NOWAIT);
 
+  //Allocate Down Lock
   sem->down = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
-  lockinit(sem->down, 0, "Down is locked", 0, LK_NOWAIT);
+  lockinit(sem->down, 0, "Down is locked", p->p_priority, LK_NOWAIT);
 
+  //Allocate Up Lock
   sem->up = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
-  lockinit(sem->up, 0, "Up is locked", 0, LK_NOWAIT);
+  lockinit(sem->up, 0, "Up is locked", p->p_priority, LK_NOWAIT);
 
   //allocates memory and assigns the semaphore to it
   np = (struct entry *) malloc( (unsigned long)sizeof( struct entry ),M_SUBPROC,M_NOWAIT );
@@ -276,17 +278,21 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
       if(strcmp(np->semaphore.name, kstr1)==0){
           if(np->semaphore.count < 0){
             uprintf("Process ID: %lu Semaphore %s should be sleeping\n",np->semaphore.ID,np->semaphore.name);
-            //Work on sleep
+            //Sleep the process
+
 
 
             return(0);
           }else{
-            uprintf("Process ID: %lu Semaphore %s is decrementing\n",np->semaphore.ID,np->semaphore.name);
             //Jerk off
 
-
+            //Lock
+            lockmgr(np->semaphore.mutex,LK_EXCLUSIVE,np->semaphore.slock,curproc);
+            uprintf("Process ID: %lu Semaphore %s is decrementing\n",np->semaphore.ID,np->semaphore.name);
             --np->semaphore.count;
+            lockmgr(np->semaphore.mutex,LK_RELEASE,np->semaphore.slock,curproc);
             return(0);
+
             }
           }
         }
