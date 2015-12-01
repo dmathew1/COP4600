@@ -586,5 +586,5 @@
 291 STD   { int sys_cipher( char *text, int lkey, int nkey  );}
 292 STD		{ int allocate_semaphore(const char *name,int initial_count);}
 293 STD		{ int down_semaphore(const char *name);}
-294 STD 	{ int up_semaphore(void);}
-295 STD 	{	int	free_semaphore(void);}
+294 STD 	{ int up_semaphore(const char *name);}
+295 STD 	{	int	free_semaphore(const char *name);}
