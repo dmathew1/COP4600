@@ -131,10 +131,15 @@ extern int nemuls;			/* Number of emuls */
 	 struct lock *mutex;
 	 struct lock *down;
 	 struct lock *up;
+	SIMPLEQ_HEAD(queueheadConditional, conditionalEntry) conditionalQueue;
  }semaphore_t;
 
+ //Entries for the SIMPLEQ Conditional construct
+ struct conditionalEntry{
+   SIMPLEQ_ENTRY(conditionalEntry) next;
+ }*npCondition;
 
-//Struct for LIST entries
+//Struct for LIST entries for the LIST
 struct entry{
    semaphore_t semaphore;
 	 LIST_ENTRY(entry) next;

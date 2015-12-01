@@ -13,6 +13,7 @@
 #include <sys/pool.h>
 #include <sys/semaphore.h>
 #include <lib/libkern/libkern.h>
+#include <sys/types.h>
 
 #include <sys/mount.h>
 #include <sys/syscallargs.h>
@@ -234,10 +235,13 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
 
   //Allocates semaphore and its attributes
   sem = (semaphore_t *) malloc( sizeof(  semaphore_t ),M_SUBPROC,M_NOWAIT );
+  SIMPLEQ_INIT(&sem->conditionalQueue);
   sem->count=SCARG(uap,initial_count);
   sem->name = (char*)malloc((unsigned long)32,M_SUBPROC,M_NOWAIT);
   strncpy(sem->name,kstr,MAX_NAME_LENGTH);
   sem->ID = p->p_pid;
+
+
 
   //Allocate Mutex Lock
   sem->mutex = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
@@ -253,6 +257,7 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
 
   //allocates memory and assigns the semaphore to it
   np = (struct entry *) malloc( (unsigned long)sizeof( struct entry ),M_SUBPROC,M_NOWAIT );
+  npCondition = (struct conditionalEntry*)malloc((unsigned long)sizeof(struct conditionalEntry),M_SUBPROC,M_NOWAIT);
   np->semaphore = *sem;
   LIST_INSERT_HEAD(&p->createdSemaphore, np, next);
 
@@ -279,9 +284,8 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
           if(np->semaphore.count < 0){
             uprintf("Process ID: %lu Semaphore %s should be sleeping\n",np->semaphore.ID,np->semaphore.name);
             //Sleep the process
-
-
-
+            SIMPLEQ_INSERT_HEAD(&np->semaphore.conditionalQueue,npCondition, next);
+            sleep(npCondition,p->p_priority);
             return(0);
           }else{
             //Jerk off
