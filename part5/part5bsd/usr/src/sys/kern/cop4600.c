@@ -213,8 +213,8 @@ int
 allocate_semaphore( struct proc *p, void *v, register_t *retval )
 {
 
-  //each node in the simpleQ represents the semaphore architecture
-  //struct entry *np;
+  //Check to see if the list already has the semaphore name
+
   semaphore_t *sem;
 
   char kstr[MAX_NAME_LENGTH+1];
@@ -223,17 +223,37 @@ allocate_semaphore( struct proc *p, void *v, register_t *retval )
 
   //gets the arguments for allocate_semaphore as a struct
   struct allocate_semaphore_args *uap = v;
-  err = copyinstr( SCARG(uap, name), &kstr, MAX_STR_LENGTH+1, &size );
+  err = copyinstr( SCARG(uap, name), &kstr, MAX_NAME_LENGTH+1, &size );
 
+  for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
+    if(strcmp(np->semaphore.name, kstr)==0){
+      uprintf("This semaphore already exists.\n");
+      break;
+    }
+  }
+
+  //Allocates semaphore and its attributes
   sem = (semaphore_t *) malloc( sizeof(  semaphore_t ),M_SUBPROC,M_NOWAIT );
   sem->count=SCARG(uap,initial_count);
-  sem->name = kstr;
+  sem->name = (char*)malloc((unsigned long)32,M_SUBPROC,M_NOWAIT);
+  strncpy(sem->name,kstr,MAX_NAME_LENGTH);
   sem->ID = p->p_pid;
 
-  //allocates memory and assigns the attributes
+  //Allocate 
+  sem->mutex = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
+  lockinit(sem->mutex, 0, "Mutex is locked", 0, LK_NOWAIT);
+
+  sem->down = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
+  lockinit(sem->down, 0, "Down is locked", 0, LK_NOWAIT);
+
+  sem->up = (struct lock*)malloc(sizeof(struct lock),M_SUBPROC,M_NOWAIT);
+  lockinit(sem->up, 0, "Up is locked", 0, LK_NOWAIT);
+
+  //allocates memory and assigns the semaphore to it
   np = (struct entry *) malloc( (unsigned long)sizeof( struct entry ),M_SUBPROC,M_NOWAIT );
   np->semaphore = *sem;
   LIST_INSERT_HEAD(&p->createdSemaphore, np, next);
+
   *retval = p->p_pid;
   return (0);
 }
@@ -244,22 +264,34 @@ down_semaphore( struct proc *p, void *v, register_t *retval )
   char kstr1[MAX_NAME_LENGTH+1];
   int size1 = 0;
   int err = 0;
-
+  struct proc *head = p;
 
   //pass arguments down
   struct down_semaphore_args *uap = v;
   err = copyinstr( SCARG(uap, name), &kstr1, MAX_STR_LENGTH+1, &size1 );
 
-  for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
-    // if(strcmp(np->semaphore.name, kstr1)==0){
-       uprintf("Semaphore: %s with %d locks remaining FOUND \n",np->semaphore.name,np->semaphore.count);
-    //   break;
-    // }else{
-    //   uprintf("NOT FOUND NIGGA\n");
-    // }
-  }
+  // Find the semaphore I want
+  while(head != NULL){
+    for ( np = LIST_FIRST(&p->createdSemaphore); np != NULL; np = LIST_NEXT(np, next) ){
+      if(strcmp(np->semaphore.name, kstr1)==0){
+          if(np->semaphore.count < 0){
+            uprintf("Process ID: %lu Semaphore %s should be sleeping\n",np->semaphore.ID,np->semaphore.name);
+            //Work on sleep
 
 
+            return(0);
+          }else{
+            uprintf("Process ID: %lu Semaphore %s is decrementing\n",np->semaphore.ID,np->semaphore.name);
+            //Jerk off
+
+
+            --np->semaphore.count;
+            return(0);
+            }
+          }
+        }
+        head = head->p_pptr;
+      }
 
   *retval = p->p_pid;
   return (0);

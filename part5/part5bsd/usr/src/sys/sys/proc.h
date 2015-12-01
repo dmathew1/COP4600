@@ -45,6 +45,7 @@
 #include <sys/queue.h>
 #include <sys/timeout.h>		/* For struct timeout. */
 #include <sys/event.h>			/* For struct klist */
+#include <sys/lock.h>
 
 /*
  * One structure allocated per session.
@@ -121,18 +122,23 @@ extern int nemuls;			/* Number of emuls */
  * is running.
  */
 
-
+//Semaphore
  typedef struct{
    int count;
    char *name;
    pid_t ID;
+	 struct lock *mutex;
+	 struct simplelock *mutex1;
+	 struct lock *down;
+	 struct lock *up;
  }semaphore_t;
 
- //Global container for semaphores capped at 64
- typedef struct {
-   semaphore_t *sem_array[64];
-   int count;
- }sem_container;
+
+
+struct entry{
+   semaphore_t semaphore;
+	 LIST_ENTRY(entry) next;
+ }*np;
 
 struct	proc {
 	struct	proc *p_forw;		/* Doubly-linked run/sleep queue. */
@@ -162,7 +168,7 @@ struct	proc {
 	struct	proc *p_pptr;	 	/* Pointer to parent process. */
 	LIST_ENTRY(proc) p_sibling;	/* List of sibling processes. */
 	LIST_HEAD(, proc) p_children;	/* Pointer to list of children. */
-  struct	proc_extend *process; /* pointer to the process extention struct */
+	LIST_HEAD(queuehead, entry) createdSemaphore;
 
 /* The following fields are all zeroed upon creation in fork. */
 #define	p_startzero	p_oppid
@@ -204,7 +210,8 @@ struct	proc {
 	struct	klist p_klist;		/* knotes attached to this process */
 					/* pad to 256, avoid shifting eproc. */
 
-	sem_container *psem_container;
+
+
 
 /* End area that is zeroed on creation. */
 #define	p_endzero	p_startcopy
